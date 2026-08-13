@@ -25,7 +25,7 @@ export default function Admin() { return <DashboardLayout><AdminContent /></Dash
 
 function AdminContent() {
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.email?.toLowerCase() === "idopublishingcompan@gmail.com";
   const utils = trpc.useUtils();
   const { data: works = [], isLoading } = trpc.webtoons.adminList.useQuery(undefined, { enabled: isAdmin });
   const [editingWork, setEditingWork] = useState<number | null>(null);

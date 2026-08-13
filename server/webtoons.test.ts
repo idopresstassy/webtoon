@@ -23,12 +23,12 @@ vi.mock("./webtoonUploads", () => ({ uploadWebtoonImage: vi.fn() }));
 import { appRouter } from "./routers";
 import { uploadWebtoonImage } from "./webtoonUploads";
 
-function contextFor(role?: "user" | "admin"): TrpcContext {
+function contextFor(role?: "user" | "admin", email = "test@example.com"): TrpcContext {
   return {
     user: role ? {
       id: 1,
       openId: "test-user",
-      email: "test@example.com",
+      email,
       name: "Test User",
       loginMethod: "manus",
       role,
@@ -77,6 +77,12 @@ describe("webtoons router access", () => {
     database.getAdminWebtoons.mockResolvedValue([{ id: 3, title: "운영 작품", episodeCount: 2 }]);
     const caller = appRouter.createCaller(contextFor("admin"));
     await expect(caller.webtoons.adminList()).resolves.toEqual([{ id: 3, title: "운영 작품", episodeCount: 2 }]);
+  });
+
+  it("allows the designated publishing operator email when a stale session role is user", async () => {
+    database.getAdminWebtoons.mockResolvedValue([]);
+    const caller = appRouter.createCaller(contextFor("user", "idopublishingcompan@gmail.com"));
+    await expect(caller.webtoons.adminList()).resolves.toEqual([]);
   });
 
   it("stores a new cover before an administrator creates a work", async () => {

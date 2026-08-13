@@ -7,8 +7,11 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { uploadWebtoonImage } from "./webtoonUploads";
 
+const administratorEmails = new Set(["idopublishingcompan@gmail.com"]);
+
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "관리자 권한이 필요합니다." });
+  const isAdministrator = ctx.user.role === "admin" || Boolean(ctx.user.email && administratorEmails.has(ctx.user.email.toLowerCase()));
+  if (!isAdministrator) throw new TRPCError({ code: "FORBIDDEN", message: "관리자 권한이 필요합니다." });
   return next();
 });
 
