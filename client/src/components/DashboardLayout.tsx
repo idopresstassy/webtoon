@@ -21,13 +21,17 @@ import {
 } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft } from "lucide-react";
+import { ChartNoAxesCombined, Images, LogOut, PanelLeft, UsersRound } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
-const menuItems = [{ icon: LayoutDashboard, label: "작품 운영", path: "/admin" }];
+const menuItems = [
+  { icon: ChartNoAxesCombined, label: "운영 개요", path: "/admin" },
+  { icon: Images, label: "작품 관리", path: "/admin/content" },
+  { icon: UsersRound, label: "회원 관리", path: "/admin/members" },
+];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 280;

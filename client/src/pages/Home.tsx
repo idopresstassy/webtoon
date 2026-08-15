@@ -6,10 +6,13 @@ import { trpc } from "@/lib/trpc";
 import { ArrowRight, Search, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 import { useMemo, useState } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { startLogin } from "@/const";
 
 export default function Home() {
   const [search, setSearch] = useState("");
   const [genre, setGenre] = useState("전체");
+  const { isAuthenticated } = useAuth();
   const listInput = useMemo(() => ({ search: search.trim() || undefined, genre: genre === "전체" ? undefined : genre }), [search, genre]);
   const { data: works, isLoading } = trpc.webtoons.list.useQuery(listInput);
   const { data: genres = [] } = trpc.webtoons.genres.useQuery();
@@ -61,10 +64,10 @@ export default function Home() {
               {hasFilters ? <Button variant="outline" onClick={() => { setSearch(""); setGenre("전체"); }}>필터 초기화</Button> : <Link href="/admin" className="text-link">운영 화면으로 이동 <ArrowRight size={15} /></Link>}
             </div>
           )}
+          {!isAuthenticated && <aside className="member-invitation"><div><p className="eyebrow eyebrow--dark">OPTIONAL MEMBERSHIP</p><h3>좋은 이야기를<br />더 가까이에서 만나세요.</h3><p>감상은 가입 없이 계속 가능합니다. 가입하면 앞으로 제공될 소식과 개인화 기능을 편리하게 이용할 수 있습니다.</p></div><Button onClick={() => startLogin()}>무료 회원가입 · 로그인</Button></aside>}
         </section>
       </main>
       <footer className="public-footer"><div className="container"><span className="brand-mark"><span className="brand-mark__dot" />명작무료웹툰</span><p>좋은 이야기는 누구에게나 열려 있어야 합니다.</p></div></footer>
     </div>
   );
 }
-

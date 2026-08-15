@@ -59,10 +59,22 @@ export const episodeImages = mysqlTable(
   table => [uniqueIndex("episode_images_episode_order_unique").on(table.episodeId, table.sortOrder)],
 );
 
+/** Anonymous or signed-in reader activity, used only for aggregate operating statistics. */
+export const readingEvents = mysqlTable(
+  "readingEvents",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    visitorId: varchar("visitorId", { length: 80 }).notNull(),
+    webtoonId: int("webtoonId").notNull().references(() => webtoons.id, { onDelete: "cascade" }),
+    episodeId: int("episodeId").notNull().references(() => episodes.id, { onDelete: "cascade" }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Webtoon = typeof webtoons.$inferSelect;
 export type InsertWebtoon = typeof webtoons.$inferInsert;
 export type Episode = typeof episodes.$inferSelect;
 export type InsertEpisode = typeof episodes.$inferInsert;
-
+export type ReadingEvent = typeof readingEvents.$inferSelect;

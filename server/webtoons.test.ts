@@ -15,6 +15,9 @@ const database = vi.hoisted(() => ({
   updateEpisode: vi.fn(),
   removeEpisode: vi.fn(),
   replaceEpisodeImages: vi.fn(),
+  recordReadingEvent: vi.fn(),
+  getAdminMembers: vi.fn(),
+  getAdminAnalytics: vi.fn(),
 }));
 
 vi.mock("./db", () => database);
@@ -63,6 +66,26 @@ describe("webtoons router access", () => {
     await expect(caller.webtoons.viewer({ slug: "public-work", episodeNumber: 1 })).resolves.toMatchObject({ episode: { episodeNumber: 1 } });
   });
 
+  it("records a reading event without requiring reader signup", async () => {
+    database.recordReadingEvent.mockResolvedValue(undefined);
+    const caller = appRouter.createCaller(contextFor());
+    await expect(caller.analytics.recordReading({ visitorId: "visitor-unique-123", webtoonId: 7, episodeId: 9 })).resolves.toEqual({ success: true });
+    expect(database.recordReadingEvent).toHaveBeenCalledWith({ visitorId: "visitor-unique-123", webtoonId: 7, episodeId: 9 });
+  });
+
+  it("keeps the full browse-to-read journey public for a visitor without an account", async () => {
+    database.getPublishedWebtoons.mockResolvedValue([{ id: 7, slug: "public-work", title: "공개 작품" }]);
+    database.getPublicWebtoonBySlug.mockResolvedValue({ work: { id: 7, slug: "public-work", title: "공개 작품" }, episodes: [{ id: 9, episodeNumber: 1, title: "첫 화" }] });
+    database.getPublicEpisode.mockResolvedValue({ work: { id: 7, title: "공개 작품" }, episode: { id: 9, episodeNumber: 1, title: "첫 화" }, images: [{ id: 1, imageUrl: "/manus-storage/page-1.jpg" }], allEpisodes: [{ episodeNumber: 1, title: "첫 화" }] });
+    database.recordReadingEvent.mockResolvedValue(undefined);
+    const caller = appRouter.createCaller(contextFor());
+
+    await expect(caller.webtoons.list()).resolves.toHaveLength(1);
+    await expect(caller.webtoons.detail({ slug: "public-work" })).resolves.toMatchObject({ episodes: [{ episodeNumber: 1 }] });
+    await expect(caller.webtoons.viewer({ slug: "public-work", episodeNumber: 1 })).resolves.toMatchObject({ images: [{ imageUrl: "/manus-storage/page-1.jpg" }] });
+    await expect(caller.analytics.recordReading({ visitorId: "visitor-full-flow-123", webtoonId: 7, episodeId: 9 })).resolves.toEqual({ success: true });
+  });
+
   it("rejects unauthenticated access to the administrator catalog", async () => {
     const caller = appRouter.createCaller(contextFor());
     await expect(caller.webtoons.adminList()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
@@ -83,6 +106,18 @@ describe("webtoons router access", () => {
     database.getAdminWebtoons.mockResolvedValue([]);
     const caller = appRouter.createCaller(contextFor("user", "idopublishingcompan@gmail.com"));
     await expect(caller.webtoons.adminList()).resolves.toEqual([]);
+  });
+
+  it("restricts member and analytics management to an administrator", async () => {
+    const visitor = appRouter.createCaller(contextFor());
+    await expect(visitor.members.list()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(visitor.analytics.dashboard()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+
+    database.getAdminMembers.mockResolvedValue([{ id: 1, email: "member@example.com" }]);
+    database.getAdminAnalytics.mockResolvedValue({ totalMembers: 1, totalViews: 0, topWorks: [{ workId: 1, workTitle: "명작", views: 4 }] });
+    const admin = appRouter.createCaller(contextFor("admin"));
+    await expect(admin.members.list()).resolves.toEqual([{ id: 1, email: "member@example.com" }]);
+    await expect(admin.analytics.dashboard()).resolves.toMatchObject({ totalMembers: 1, topWorks: [{ workTitle: "명작", views: 4 }] });
   });
 
   it("stores a new cover before an administrator creates a work", async () => {

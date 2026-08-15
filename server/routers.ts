@@ -124,6 +124,20 @@ export const appRouter = router({
       return { id: input.id };
     }),
   }),
+  members: router({
+    list: adminProcedure.query(() => db.getAdminMembers()),
+  }),
+  analytics: router({
+    dashboard: adminProcedure.query(() => db.getAdminAnalytics()),
+    recordReading: publicProcedure.input(z.object({
+      visitorId: z.string().min(12).max(80),
+      webtoonId: z.number().int().positive(),
+      episodeId: z.number().int().positive(),
+    })).mutation(async ({ input }) => {
+      await db.recordReadingEvent(input);
+      return { success: true } as const;
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

@@ -15,6 +15,13 @@
       "when": 1786632187554,
       "tag": "0001_wakeful_magneto",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786783851196,
+      "tag": "0002_friendly_cargill",
+      "breakpoints": true
     }
   ]
 }

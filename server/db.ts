@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, like, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   episodeImages,
@@ -8,10 +8,12 @@ import {
   InsertWebtoon,
   users,
   webtoons,
+  readingEvents,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+const operatorAdminEmails = new Set(["idopublishingcompan@gmail.com"]);
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
@@ -38,8 +40,14 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet[field] = user[field] ?? null;
     }
   }
-  values.role = user.role ?? (user.openId === ENV.ownerOpenId ? "admin" : "user");
-  updateSet.role = values.role;
+  const normalizedEmail = user.email?.toLowerCase();
+  if (user.role !== undefined) {
+    values.role = user.role;
+    updateSet.role = user.role;
+  } else if (user.openId === ENV.ownerOpenId || (normalizedEmail && operatorAdminEmails.has(normalizedEmail))) {
+    values.role = "admin";
+    updateSet.role = "admin";
+  }
   await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
 }
 
@@ -183,4 +191,79 @@ export async function replaceEpisodeImages(episodeId: number, images: { imageUrl
   if (images.length) {
     await db.insert(episodeImages).values(images.map((image, index) => ({ ...image, episodeId, sortOrder: index + 1 })));
   }
+}
+
+export async function recordReadingEvent(values: { visitorId: string; webtoonId: number; episodeId: number }) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(readingEvents).values(values);
+}
+
+export async function getAdminMembers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    loginMethod: users.loginMethod,
+    role: users.role,
+    createdAt: users.createdAt,
+    lastSignedIn: users.lastSignedIn,
+  }).from(users).orderBy(desc(users.createdAt));
+}
+
+export async function getAdminAnalytics() {
+  const db = await getDb();
+  if (!db) return { totalMembers: 0, newMembers: 0, totalViews: 0, activeVisitors: 0, dailyViews: [], topEpisodes: [], topWorks: [] };
+  const now = new Date();
+  const rangeStart = new Date(now);
+  rangeStart.setDate(rangeStart.getDate() - 13);
+  rangeStart.setHours(0, 0, 0, 0);
+  const memberStart = new Date(now);
+  memberStart.setDate(memberStart.getDate() - 29);
+  memberStart.setHours(0, 0, 0, 0);
+  const [members, recentEvents, allEvents, availableEpisodes, availableWorks] = await Promise.all([
+    db.select().from(users),
+    db.select().from(readingEvents).where(gte(readingEvents.createdAt, rangeStart)),
+    db.select({ id: readingEvents.id }).from(readingEvents),
+    db.select().from(episodes),
+    db.select().from(webtoons),
+  ]);
+  const dailyMap = new Map<string, number>();
+  for (let offset = 13; offset >= 0; offset -= 1) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - offset);
+    dailyMap.set(date.toISOString().slice(0, 10), 0);
+  }
+  for (const event of recentEvents) {
+    const key = new Date(event.createdAt).toISOString().slice(0, 10);
+    if (dailyMap.has(key)) dailyMap.set(key, (dailyMap.get(key) ?? 0) + 1);
+  }
+  const episodeMap = new Map(availableEpisodes.map(episode => [episode.id, episode]));
+  const workMap = new Map(availableWorks.map(work => [work.id, work]));
+  const episodeCounts = new Map<number, number>();
+  const workCounts = new Map<number, number>();
+  for (const event of recentEvents) {
+    episodeCounts.set(event.episodeId, (episodeCounts.get(event.episodeId) ?? 0) + 1);
+    workCounts.set(event.webtoonId, (workCounts.get(event.webtoonId) ?? 0) + 1);
+  }
+  const topEpisodes = Array.from(episodeCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5).flatMap(([episodeId, views]) => {
+    const episode = episodeMap.get(episodeId);
+    const work = episode ? workMap.get(episode.webtoonId) : undefined;
+    return episode && work ? [{ episodeId, episodeNumber: episode.episodeNumber, episodeTitle: episode.title, workTitle: work.title, views }] : [];
+  });
+  const topWorks = Array.from(workCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5).flatMap(([workId, views]) => {
+    const work = workMap.get(workId);
+    return work ? [{ workId, workTitle: work.title, genre: work.genre, views }] : [];
+  });
+  return {
+    totalMembers: members.length,
+    newMembers: members.filter(member => new Date(member.createdAt) >= memberStart).length,
+    totalViews: allEvents.length,
+    activeVisitors: new Set(recentEvents.map(event => event.visitorId)).size,
+    dailyViews: Array.from(dailyMap.entries()).map(([date, views]) => ({ date, views })),
+    topEpisodes,
+    topWorks,
+  };
 }
