@@ -35,6 +35,10 @@ export default function Home() {
         </section>
 
         <section className="collection-section container" id="collection">
+          <aside className="ai-disclosure" role="note" aria-label="AI 활용 제작 안내">
+            <Sparkles size={18} aria-hidden="true" />
+            <div><p>AI-ASSISTED CREATION</p><strong>이 웹툰은 AI를 활용해 제작했습니다.</strong><span>AI 기술을 창작 과정에 활용한 작품임을 독자에게 투명하게 안내합니다.</span></div>
+          </aside>
           <div className="section-heading">
             <div><p className="eyebrow eyebrow--dark">OUR COLLECTION</p><h2>무료 웹툰 작품</h2></div>
             <p>새롭게 업데이트되는 작품을<br className="desktop-only" /> 자유롭게 감상하세요.</p>
