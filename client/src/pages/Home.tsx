@@ -3,7 +3,7 @@ import WebtoonCover from "@/components/WebtoonCover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, Search, Sparkles } from "lucide-react";
+import { ArrowRight, ExternalLink, Search, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -69,6 +69,11 @@ export default function Home() {
             </div>
           )}
           {!isAuthenticated && <aside className="member-invitation"><div><p className="eyebrow eyebrow--dark">OPTIONAL MEMBERSHIP</p><h3>좋은 이야기를<br />더 가까이에서 만나세요.</h3><p>감상은 가입 없이 계속 가능합니다. 가입하면 앞으로 제공될 소식과 개인화 기능을 편리하게 이용할 수 있습니다.</p></div><Button onClick={() => startLogin()}>무료 회원가입 · 로그인</Button></aside>}
+          <aside className="library-promo">
+            <div className="library-promo__seal" aria-hidden="true">書</div>
+            <div className="library-promo__copy"><p className="eyebrow eyebrow--dark">READ THE ORIGINAL</p><h3>원문으로 만나는<br />한국문학</h3><p>웹툰으로 이야기를 만나고, 원문은 <strong>명작무료책방</strong>에서 이어 읽어보세요. 고전과 한국문학의 본문을 차분하게 탐독할 수 있습니다.</p></div>
+            <a className="library-promo__link" href="https://korealib.com" target="_blank" rel="noopener noreferrer">명작무료책방 바로가기<ExternalLink size={16} aria-hidden="true" /></a>
+          </aside>
         </section>
       </main>
       <footer className="public-footer"><div className="container"><span className="brand-mark"><span className="brand-mark__dot" />명작무료웹툰</span><p>좋은 이야기는 누구에게나 열려 있어야 합니다.</p></div></footer>
