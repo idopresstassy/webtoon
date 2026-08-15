@@ -72,7 +72,7 @@ export default function Home() {
           <aside className="library-promo">
             <div className="library-promo__seal" aria-hidden="true">書</div>
             <div className="library-promo__copy"><p className="eyebrow eyebrow--dark">READ THE ORIGINAL</p><h3>원문으로 만나는<br />한국문학</h3><p>웹툰으로 이야기를 만나고, 원문은 <strong>명작무료책방</strong>에서 이어 읽어보세요. 고전과 한국문학의 본문을 차분하게 탐독할 수 있습니다.</p></div>
-            <a className="library-promo__link" href="https://korealib.com" target="_blank" rel="noopener noreferrer">명작무료책방 바로가기<ExternalLink size={16} aria-hidden="true" /></a>
+            <a className="library-promo__link" href="https://korealib.com/" aria-label="명작무료책방에서 한국문학 원문 보기">명작무료책방 바로가기<ExternalLink size={16} aria-hidden="true" /></a>
           </aside>
         </section>
       </main>
