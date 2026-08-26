@@ -13,11 +13,13 @@
 
 ## 첫 운영자 지정
 
-회원가입 후 SQL Editor에서 아래 SQL의 이메일만 실제 운영자 이메일로 바꿔 실행합니다.
+Supabase Dashboard의 **Authentication → Users → Add user**에서 운영자 이메일 사용자를 먼저 만듭니다. 그 뒤 SQL Editor에서 `migrations/20260826_promote_first_admin.example.sql`을 열고 이메일만 실제 운영자 이메일로 바꿔 실행합니다.
 
 ```sql
-update public.profiles set role = 'admin'
-where id = (select id from auth.users where email = '운영자 이메일');
+insert into public.profiles (id, display_name, role)
+select id, coalesce(raw_user_meta_data ->> 'name', split_part(email, '@', 1)), 'admin'
+from auth.users where email = '운영자 이메일'
+on conflict (id) do update set role = 'admin';
 ```
 
 ## 인증 설정
