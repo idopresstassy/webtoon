@@ -7,6 +7,10 @@
 3. `migrations/20260826_independent_webtoon.sql` 전체를 붙여 넣고 **Run**을 누릅니다.
 4. 오류가 없으면 `webtoons`, `episodes`, `episode_images`, `reading_events`, `profiles` 테이블과 `webtoon-assets` 버킷이 생성됩니다.
 
+### 정책 중복 오류가 났을 때
+
+첫 실행이 중간에 멈춰 `policy already exists` 오류가 보이면, 테이블과 기존 데이터는 그대로 둔 채 `migrations/20260826_repair_policies.sql` 전체를 새 SQL 쿼리에서 실행합니다. 이 보완 SQL은 RLS 정책만 교체하고 테이블·작품·회원 데이터를 삭제하지 않습니다.
+
 ## 첫 운영자 지정
 
 회원가입 후 SQL Editor에서 아래 SQL의 이메일만 실제 운영자 이메일로 바꿔 실행합니다.
