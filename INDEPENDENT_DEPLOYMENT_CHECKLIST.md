@@ -1,6 +1,6 @@
 # 독립 배포 준비 체크리스트
 
-명작무료웹툰의 독립 운영 기준 구성은 **Supabase(Postgres·회원 인증·이미지 저장)**와 **Vercel(웹·API 배포)**입니다. 현재 외부 계정 연결 오류가 있어도 아래 준비 작업은 GitHub 소스에서 계속 진행할 수 있습니다.
+명작무료웹툰의 독립 운영 기준 구성은 **Supabase(Postgres·회원 인증·이미지 저장)**와 **Vercel(정적 React 웹 배포)**입니다. 공개 목록·상세·세로 뷰어와 운영자 콘텐츠 관리·회원·통계 화면은 Supabase를 직접 사용하며, 독립 배포에서는 기존 Manus 서버를 사용하지 않습니다.
 
 ## 1. Supabase 계정과 프로젝트 만들기
 
@@ -29,7 +29,7 @@
 node scripts/export-content.mjs > content-manifest.json
 ```
 
-이미지 파일 자체는 기존 스토리지 또는 수동 보관 원본에서 내려받아 Supabase Storage의 비공개 버킷으로 다시 업로드합니다. GitHub에는 이미지 원본이나 회원·통계 데이터를 저장하지 않습니다.
+이미지 파일 자체는 기존 스토리지 또는 수동 보관 원본에서 내려받아 Supabase Storage의 **공개 읽기 버킷** `webtoon-assets`로 다시 업로드합니다. 이미지 경로·테이블 행은 RLS로 관리하고, GitHub에는 이미지 원본이나 회원·통계 데이터를 저장하지 않습니다.
 
 현재 프로젝트에서 이전을 수행할 수 있는 경우에는 아래 스크립트가 작품·회차·이미지 파일을 `webtoon-assets` 버킷으로 복사합니다. 실행 전 Supabase 보안 키와 기존 DB·이미지 저장소 접근이 모두 가능한지 확인합니다.
 
@@ -39,6 +39,15 @@ node scripts/import-content-to-supabase.mjs
 
 ## 4. Vercel 배포
 
-Supabase 구성이 끝난 뒤 [Vercel](https://vercel.com/)에서 GitHub의 `idopresstassy/webtoon` 저장소를 연결합니다. 배포 전에 환경 변수를 등록하고, 비회원 감상·회원가입·운영자 로그인·작품 업로드를 순서대로 확인합니다.
+Supabase 구성이 끝난 뒤 [Vercel](https://vercel.com/)에서 GitHub의 `idopresstassy/webtoon` 저장소를 연결합니다. 프로젝트는 `vercel.json`으로 SPA 경로와 정적 출력 폴더를 지정하므로 Framework Preset은 **Vite**, Build Command는 `pnpm build`, Output Directory는 `dist/public`으로 확인합니다.
+
+Vercel의 **Settings → Environment Variables**에 다음 두 값만 등록합니다. `SUPABASE_SECRET_KEY`는 브라우저·Vercel 환경 변수에 절대 등록하지 않습니다.
+
+| 이름 | 환경 | 설명 |
+|---|---|---|
+| `VITE_SUPABASE_URL` | Production, Preview | Supabase 프로젝트 URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Production, Preview | Supabase Publishable key |
+
+배포 후에는 비회원 감상, 회원가입·로그인, 운영자 로그인, 작품·회차 업로드, 이미지 순서 변경, 회원·통계 조회를 차례대로 확인합니다.
 
 > 외부 계정 연결이 계속 실패하면, 먼저 브라우저에서 Supabase 계정을 만든 뒤 이 작업으로 돌아오면 됩니다. 코드와 콘텐츠 내보내기 준비는 연결 없이도 계속 가능합니다.

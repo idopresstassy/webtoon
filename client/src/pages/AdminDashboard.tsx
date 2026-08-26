@@ -1,8 +1,9 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { trpc } from "@/lib/trpc";
+import { getAdminDashboard } from "@/lib/adminRepository";
 import { Activity, BarChart3, BookOpen, ChartNoAxesCombined, Eye, UsersRound } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 const operatorEmail = "idopublishingcompan@gmail.com";
 
@@ -13,7 +14,7 @@ export default function AdminDashboard() {
 function AdminDashboardContent() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin" || user?.email?.toLowerCase() === operatorEmail;
-  const { data, isLoading, error, refetch } = trpc.analytics.dashboard.useQuery(undefined, { enabled: isAdmin });
+  const { data, isLoading, error, refetch } = useQuery({ queryKey: ["supabase", "admin", "dashboard"], queryFn: getAdminDashboard, enabled: isAdmin });
   if (!isAdmin) return <div className="admin-denied"><Activity size={34} /><h1>관리자 전용 화면입니다.</h1><p>승인된 운영자 계정으로 로그인한 뒤 다시 시도해 주세요.</p></div>;
   if (isLoading) return <div className="dashboard-loading">운영 통계를 불러오는 중입니다.</div>;
   if (error || !data) return <div className="dashboard-loading"><Activity size={26} /><p>운영 통계를 불러오지 못했습니다.</p><Button variant="outline" size="sm" onClick={() => void refetch()}>다시 불러오기</Button></div>;
@@ -25,7 +26,7 @@ function AdminDashboardContent() {
       <article><span className="metric-icon"><UsersRound size={19} /></span><p>전체 회원</p><strong>{dashboard.totalMembers.toLocaleString("ko-KR")}</strong><small>최근 30일 신규 {dashboard.newMembers.toLocaleString("ko-KR")}명</small></article>
       <article><span className="metric-icon"><Eye size={19} /></span><p>누적 회차 열람</p><strong>{dashboard.totalViews.toLocaleString("ko-KR")}</strong><small>회차 화면을 연 열람 기록</small></article>
       <article><span className="metric-icon"><Activity size={19} /></span><p>최근 14일 독자</p><strong>{dashboard.activeVisitors.toLocaleString("ko-KR")}</strong><small>중복을 제외한 기기 기준</small></article>
-      <article><span className="metric-icon"><BookOpen size={19} /></span><p>등록 작품</p><strong>{dashboard.topEpisodes.length ? "운영 중" : "준비 중"}</strong><small>작품·회차 관리에서 등록하세요</small></article>
+      <article><span className="metric-icon"><BookOpen size={19} /></span><p>등록 작품</p><strong>{dashboard.workCount.toLocaleString("ko-KR")}</strong><small>공개·비공개 작품을 포함한 수</small></article>
     </section>
     <section className="analytics-grid">
       <article className="analytics-panel views-panel"><div className="panel-heading"><div><p className="eyebrow eyebrow--dark">READING TREND</p><h2>최근 14일 열람</h2></div><span>실제 기록만 표시</span></div><div className="bar-chart">{dashboard.dailyViews.map(item => <div key={item.date} className="bar-chart__item"><span className="bar-chart__value">{item.views || ""}</span><div className="bar-chart__track"><i style={{ height: `${Math.max((item.views / maxViews) * 100, item.views ? 5 : 1)}%` }} /></div><small>{item.date.slice(5).replace("-", ".")}</small></div>)}</div></article>
