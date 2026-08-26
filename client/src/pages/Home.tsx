@@ -2,20 +2,21 @@ import PublicHeader from "@/components/PublicHeader";
 import WebtoonCover from "@/components/WebtoonCover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { trpc } from "@/lib/trpc";
+import { getGenres, listPublicWebtoons } from "@/lib/webtoonRepository";
 import { ArrowRight, ExternalLink, Search, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Home() {
   const [search, setSearch] = useState("");
   const [genre, setGenre] = useState("전체");
   const { isAuthenticated } = useAuth();
   const listInput = useMemo(() => ({ search: search.trim() || undefined, genre: genre === "전체" ? undefined : genre }), [search, genre]);
-  const { data: works, isLoading } = trpc.webtoons.list.useQuery(listInput);
-  const { data: genres = [] } = trpc.webtoons.genres.useQuery();
+  const { data: works, isLoading } = useQuery({ queryKey: ["supabase", "webtoons", listInput], queryFn: () => listPublicWebtoons(listInput) });
+  const { data: genres = [] } = useQuery({ queryKey: ["supabase", "genres"], queryFn: getGenres });
   const hasFilters = Boolean(search.trim()) || genre !== "전체";
 
   return (

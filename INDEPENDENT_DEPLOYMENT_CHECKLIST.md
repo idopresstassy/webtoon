@@ -31,9 +31,14 @@ node scripts/export-content.mjs > content-manifest.json
 
 이미지 파일 자체는 기존 스토리지 또는 수동 보관 원본에서 내려받아 Supabase Storage의 비공개 버킷으로 다시 업로드합니다. GitHub에는 이미지 원본이나 회원·통계 데이터를 저장하지 않습니다.
 
+현재 프로젝트에서 이전을 수행할 수 있는 경우에는 아래 스크립트가 작품·회차·이미지 파일을 `webtoon-assets` 버킷으로 복사합니다. 실행 전 Supabase 보안 키와 기존 DB·이미지 저장소 접근이 모두 가능한지 확인합니다.
+
+```bash
+node scripts/import-content-to-supabase.mjs
+```
+
 ## 4. Vercel 배포
 
 Supabase 구성이 끝난 뒤 [Vercel](https://vercel.com/)에서 GitHub의 `idopresstassy/webtoon` 저장소를 연결합니다. 배포 전에 환경 변수를 등록하고, 비회원 감상·회원가입·운영자 로그인·작품 업로드를 순서대로 확인합니다.
 
 > 외부 계정 연결이 계속 실패하면, 먼저 브라우저에서 Supabase 계정을 만든 뒤 이 작업으로 돌아오면 됩니다. 코드와 콘텐츠 내보내기 준비는 연결 없이도 계속 가능합니다.
-

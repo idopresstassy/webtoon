@@ -10,6 +10,8 @@ import WebtoonDetail from "@/pages/WebtoonDetail";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { SupabaseAuthProvider } from "./contexts/SupabaseAuthContext";
+import Login from "./pages/Login";
 
 function Router() {
   return <Switch>
@@ -19,11 +21,12 @@ function Router() {
     <Route path="/admin" component={AdminDashboard} />
     <Route path="/admin/content" component={Admin} />
     <Route path="/admin/members" component={Members} />
+    <Route path="/login" component={Login} />
     <Route path="/404" component={NotFound} />
     <Route component={NotFound} />
   </Switch>;
 }
 
 export default function App() {
-  return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster /><Router /></TooltipProvider></ThemeProvider></ErrorBoundary>;
+  return <ErrorBoundary><ThemeProvider defaultTheme="light"><SupabaseAuthProvider><TooltipProvider><Toaster /><Router /></TooltipProvider></SupabaseAuthProvider></ThemeProvider></ErrorBoundary>;
 }

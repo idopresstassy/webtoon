@@ -1,14 +1,15 @@
 import PublicHeader from "@/components/PublicHeader";
 import WebtoonCover from "@/components/WebtoonCover";
 import { Button } from "@/components/ui/button";
-import { trpc } from "@/lib/trpc";
-import { ArrowUpRight, BookOpen, ChevronRight, List, Play } from "lucide-react";
+import { getPublicWebtoon } from "@/lib/webtoonRepository";
+import { BookOpen, ChevronRight, List, Play } from "lucide-react";
 import { Link } from "wouter";
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function WebtoonDetail({ slug }: { slug: string }) {
   const input = useMemo(() => ({ slug }), [slug]);
-  const { data, isLoading, error } = trpc.webtoons.detail.useQuery(input);
+  const { data, isLoading, error } = useQuery({ queryKey: ["supabase", "webtoon", input], queryFn: () => getPublicWebtoon(slug) });
   if (isLoading) return <div className="detail-page"><PublicHeader backTo="/" /><main className="container detail-loading">작품을 불러오는 중입니다.</main></div>;
   if (error || !data) return <div className="detail-page"><PublicHeader backTo="/" /><main className="container detail-loading">요청하신 작품을 찾을 수 없습니다.</main></div>;
   const firstEpisode = data.episodes[0];
@@ -31,10 +32,9 @@ export default function WebtoonDetail({ slug }: { slug: string }) {
         </section>
         <section className="episode-section">
           <div className="episode-section__heading"><div><p className="eyebrow eyebrow--dark">EPISODES</p><h2>회차 목록</h2></div><span>모든 회차 무료</span></div>
-          {data.episodes.length ? <ol className="episode-list">{[...data.episodes].reverse().map(episode => <li key={episode.id}><Link href={`/webtoon/${slug}/episode/${episode.episodeNumber}`}><span className="episode-list__number">{String(episode.episodeNumber).padStart(2, "0")}</span><span className="episode-list__title">{episode.title}</span><span className="episode-list__date">{new Date(episode.publishedAt).toLocaleDateString("ko-KR", { year: "numeric", month: "short", day: "numeric" })}</span><ChevronRight size={19} /></Link></li>)}</ol> : <div className="empty-episodes"><List size={25} /><p>공개된 회차가 아직 없습니다.</p></div>}
+          {data.episodes.length ? <ol className="episode-list">{[...data.episodes].reverse().map(episode => <li key={episode.id}><Link href={`/webtoon/${slug}/episode/${episode.episodeNumber}`}><span className="episode-list__number">{String(episode.episodeNumber).padStart(2, "0")}</span><span className="episode-list__title">{episode.title}</span><span className="episode-list__date">{episode.publishedAt ? new Date(episode.publishedAt).toLocaleDateString("ko-KR", { year: "numeric", month: "short", day: "numeric" }) : "공개 예정"}</span><ChevronRight size={19} /></Link></li>)}</ol> : <div className="empty-episodes"><List size={25} /><p>공개된 회차가 아직 없습니다.</p></div>}
         </section>
       </main>
     </div>
   );
 }
-
