@@ -32,6 +32,10 @@ Vercel 배포 뒤에는 **Authentication → URL Configuration**에서 Site URL�
 
 `migrations/20260827_member_management.sql`은 회원 관리 화면에 필요한 이메일과 최근 로그인 시각을 `profiles` 테이블에 추가합니다. 기존 스키마 적용 후 SQL Editor에서 한 번 실행합니다.
 
+## 작품별 댓글
+
+`migrations/20260829_webtoon_comments.sql`은 로그인 회원이 작품별 댓글을 작성하고, 운영자가 숨김·삭제를 중재하는 기능을 추가합니다. 비회원은 공개 댓글을 읽을 수 있지만 작성할 수 없습니다. 공개 댓글 조회 함수는 작성자 표시 이름만 반환하며 `profiles.email`을 노출하지 않습니다.
+
 ## 이미지 저장
 
 `webtoon-assets`는 공개된 웹툰 이미지를 독자가 볼 수 있는 공개 버킷입니다. 업로드·수정·삭제는 RLS 정책상 `admin` 역할만 할 수 있습니다. 작품 표지는 `covers/`, 회차 이미지는 `episodes/` 경로 아래에 보관합니다.

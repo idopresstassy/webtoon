@@ -1,4 +1,5 @@
 import PublicHeader from "@/components/PublicHeader";
+import WebtoonComments from "@/components/WebtoonComments";
 import WebtoonCover from "@/components/WebtoonCover";
 import { Button } from "@/components/ui/button";
 import { getPublicWebtoon } from "@/lib/webtoonRepository";
@@ -34,6 +35,7 @@ export default function WebtoonDetail({ slug }: { slug: string }) {
           <div className="episode-section__heading"><div><p className="eyebrow eyebrow--dark">EPISODES</p><h2>회차 목록</h2></div><span>모든 회차 무료</span></div>
           {data.episodes.length ? <ol className="episode-list">{[...data.episodes].reverse().map(episode => <li key={episode.id}><Link href={`/webtoon/${slug}/episode/${episode.episodeNumber}`}><span className="episode-list__number">{String(episode.episodeNumber).padStart(2, "0")}</span><span className="episode-list__title">{episode.title}</span><span className="episode-list__date">{episode.publishedAt ? new Date(episode.publishedAt).toLocaleDateString("ko-KR", { year: "numeric", month: "short", day: "numeric" }) : "공개 예정"}</span><ChevronRight size={19} /></Link></li>)}</ol> : <div className="empty-episodes"><List size={25} /><p>공개된 회차가 아직 없습니다.</p></div>}
         </section>
+        <WebtoonComments webtoonId={data.work.id} webtoonSlug={slug} />
       </main>
     </div>
   );
