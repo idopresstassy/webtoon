@@ -16,6 +16,7 @@ let memberClient: SupabaseClient;
 let otherMemberClient: SupabaseClient;
 let moderatorClient: SupabaseClient;
 let commentId = "";
+let secondCommentId = "";
 
 async function createAuthenticatedClient(email: string) {
   const client = createClient(url, publishableKey, { auth: { autoRefreshToken: false, persistSession: false } });
@@ -45,6 +46,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (commentId) await admin.from("webtoon_comments").delete().eq("id", commentId);
+  if (secondCommentId) await admin.from("webtoon_comments").delete().eq("id", secondCommentId);
   for (const id of [memberId, otherMemberId, moderatorId].filter(Boolean)) await admin.auth.admin.deleteUser(id);
 });
 
@@ -62,12 +64,25 @@ describe("Supabase webtoon comment RLS", () => {
     expect(anonymousComments?.some(comment => comment.id === commentId && comment.body === token)).toBe(true);
   });
 
-  it("prevents other members from deleting while allowing an admin to hide and delete", async () => {
+  it("prevents other members from deleting or pinning while allowing an admin to pin, hide and delete", async () => {
     const { data: otherDelete, error: otherDeleteError } = await otherMemberClient.from("webtoon_comments").delete().eq("id", commentId).select("id");
     expect(otherDeleteError).toBeNull();
     expect(otherDelete).toEqual([]);
     const { data: retained } = await admin.from("webtoon_comments").select("id").eq("id", commentId).maybeSingle();
     expect(retained?.id).toBe(commentId);
+
+    const { data: otherPin, error: otherPinError } = await otherMemberClient.from("webtoon_comments").update({ is_pinned: true }).eq("id", commentId).select("id");
+    expect(otherPinError).toBeNull();
+    expect(otherPin).toEqual([]);
+    const { data: secondComment, error: secondCommentError } = await memberClient.from("webtoon_comments").insert({ webtoon_id: workId, author_id: memberId, body: `comment-second-token-${suffix}` }).select("id").single();
+    expect(secondCommentError).toBeNull();
+    secondCommentId = secondComment!.id;
+    const { error: pinError } = await moderatorClient.from("webtoon_comments").update({ is_pinned: true, pinned_at: new Date().toISOString(), pinned_by: moderatorId }).eq("id", commentId);
+    expect(pinError).toBeNull();
+    const { data: orderedComments, error: orderedError } = await anonymous.rpc("list_webtoon_comments", { target_webtoon_id: workId });
+    expect(orderedError).toBeNull();
+    expect(orderedComments?.[0]?.id).toBe(commentId);
+    expect(orderedComments?.[0]?.is_pinned).toBe(true);
 
     const { error: hideError } = await moderatorClient.from("webtoon_comments").update({ is_hidden: true, hidden_at: new Date().toISOString(), hidden_by: moderatorId }).eq("id", commentId);
     expect(hideError).toBeNull();

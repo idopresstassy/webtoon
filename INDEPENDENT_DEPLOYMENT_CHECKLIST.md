@@ -67,4 +67,9 @@ Vercel의 **Settings → Environment Variables**에 다음 두 값만 등록합�
 - `https://www.koreawebtoon.com`은 독립 Vercel 사이트의 홈을 실제로 제공하는 것을 확인했습니다.
 - `https://koreawebtoon.com`은 www로 308 이동하도록 설정되어 있으나, 루트 도메인의 HTTPS 인증서 발급이 완료되기 전에는 브라우저에서 TLS 오류가 날 수 있습니다. Vercel 상태가 두 도메인 모두 `Valid Configuration`으로 바뀐 뒤 루트 리디렉션을 다시 확인합니다.
 
+## 6. 댓글 기능 확인 기록
+
+- 2026-08-29: `https://www.koreawebtoon.com/webtoon/isgjj-1`에서 이생규장전 작품 상세, 4개 공개 회차, Supabase Storage 표지가 정상 표시되는 것을 확인했습니다.
+- 2026-08-29: 같은 화면에서 비회원용 댓글 수, 댓글 로그인 안내, 댓글 작성 유도 버튼이 정상 표시되는 것을 확인했습니다. 익명·일반 회원·운영자별 댓글 RLS 권한은 `server/supabase.comments.rls.test.ts`의 실제 Supabase 통합 테스트로 검증합니다.
+
 > 외부 계정 연결이 계속 실패하면, 먼저 브라우저에서 Supabase 계정을 만든 뒤 이 작업으로 돌아오면 됩니다. 코드와 콘텐츠 내보내기 준비는 연결 없이도 계속 가능합니다.

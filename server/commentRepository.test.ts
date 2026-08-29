@@ -16,8 +16,8 @@ describe("webtoon comment repository", () => {
   });
 
   it("maps the safe public comment fields returned by the Supabase RPC", async () => {
-    mockRpc.mockResolvedValue({ data: [{ id: "comment-1", author_id: "author-1", author_name: "독자", body: "comment-test-token", is_hidden: false, created_at: "2026-08-29T04:00:00.000Z" }], error: null });
-    await expect(listWebtoonComments("work-1")).resolves.toEqual([{ id: "comment-1", authorId: "author-1", authorName: "독자", body: "comment-test-token", isHidden: false, createdAt: "2026-08-29T04:00:00.000Z" }]);
+    mockRpc.mockResolvedValue({ data: [{ id: "comment-1", author_id: "author-1", author_name: "독자", body: "comment-test-token", is_hidden: false, is_pinned: true, created_at: "2026-08-29T04:00:00.000Z" }], error: null });
+    await expect(listWebtoonComments("work-1")).resolves.toEqual([{ id: "comment-1", authorId: "author-1", authorName: "독자", body: "comment-test-token", isHidden: false, isPinned: true, createdAt: "2026-08-29T04:00:00.000Z" }]);
     expect(mockRpc).toHaveBeenCalledWith("list_webtoon_comments", { target_webtoon_id: "work-1" });
   });
 

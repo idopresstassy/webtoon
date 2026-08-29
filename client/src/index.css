@@ -137,4 +137,6 @@ button { cursor: pointer; }
 .comment-item__actions button { height: 29px; padding: 0 8px; color: #766750; font-size: 11px; }
 .comments-state { display: flex; min-height: 126px; align-items: center; justify-content: center; gap: 8px; color: #887d6d; font-size: 13px; }
 .comments-state p { margin: 0; }
+.comment-item--pinned { background: linear-gradient(120deg, rgba(174, 139, 76, .11), rgba(255, 253, 247, .86)); border-color: rgba(161, 126, 65, .5); }
+.comment-pinned-badge { display: inline-flex; align-items: center; gap: .25rem; color: #806431; background: #f3ead6; border: 1px solid #dcc89d; padding: .18rem .42rem; font-size: .71rem; font-weight: 700; letter-spacing: .02em; }
 @media (max-width: 640px) { .comments-section { margin: 54px -2px 64px; padding: 24px 18px; }.comments-heading { align-items: start; flex-direction: column; gap: 7px; }.comments-heading h2 { font-size: 22px; }.comments-login { align-items: stretch; flex-direction: column; }.comments-login button { width: 100%; }.comment-item--hidden { margin-inline: -8px; padding-inline: 10px; } }

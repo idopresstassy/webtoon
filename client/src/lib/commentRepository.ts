@@ -6,6 +6,7 @@ export type WebtoonComment = {
   authorName: string;
   body: string;
   isHidden: boolean;
+  isPinned: boolean;
   createdAt: string;
 };
 
@@ -15,6 +16,7 @@ type CommentRow = {
   author_name: string;
   body: string;
   is_hidden: boolean;
+  is_pinned: boolean;
   created_at: string;
 };
 
@@ -27,6 +29,7 @@ export async function listWebtoonComments(webtoonId: string): Promise<WebtoonCom
     authorName: comment.author_name,
     body: comment.body,
     isHidden: comment.is_hidden,
+    isPinned: comment.is_pinned,
     createdAt: comment.created_at,
   }));
 }
@@ -49,3 +52,7 @@ export async function setWebtoonCommentHidden(input: { commentId: string; hidden
   if (error) throw error;
 }
 
+export async function setWebtoonCommentPinned(input: { commentId: string; pinned: boolean; actorId: string }) {
+  const { error } = await supabase.from("webtoon_comments").update({ is_pinned: input.pinned, pinned_at: input.pinned ? new Date().toISOString() : null, pinned_by: input.pinned ? input.actorId : null }).eq("id", input.commentId);
+  if (error) throw error;
+}

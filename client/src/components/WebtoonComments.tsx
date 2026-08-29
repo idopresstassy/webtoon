@@ -2,9 +2,9 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { createWebtoonComment, deleteWebtoonComment, listWebtoonComments, setWebtoonCommentHidden } from "@/lib/commentRepository";
+import { createWebtoonComment, deleteWebtoonComment, listWebtoonComments, setWebtoonCommentHidden, setWebtoonCommentPinned } from "@/lib/commentRepository";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, EyeOff, Loader2, LogIn, MessageCircle, Send, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, LogIn, MessageCircle, Pin, PinOff, Send, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -37,17 +37,21 @@ export default function WebtoonComments({ webtoonId, webtoonSlug }: { webtoonId:
     onSuccess: async (_, input) => { await refresh(); toast.success(input.hidden ? "댓글을 숨겼습니다." : "댓글을 다시 공개했습니다."); },
     onError: () => toast.error("댓글 상태를 변경하지 못했습니다."),
   });
+  const pinMutation = useMutation({
+    mutationFn: setWebtoonCommentPinned,
+    onSuccess: async (_, input) => { await refresh(); toast.success(input.pinned ? "댓글을 상단에 고정했습니다." : "댓글 고정을 해제했습니다."); },
+    onError: () => toast.error("댓글 고정 상태를 변경하지 못했습니다."),
+  });
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!user) return;
     createMutation.mutate({ webtoonId, authorId: user.id, body });
   };
-  const pending = createMutation.isPending || deleteMutation.isPending || hideMutation.isPending;
+  const pending = createMutation.isPending || deleteMutation.isPending || hideMutation.isPending || pinMutation.isPending;
 
   return <section className="comments-section" aria-labelledby="comments-title">
     <div className="comments-heading"><div><p className="eyebrow eyebrow--dark">READERS' NOTE</p><h2 id="comments-title"><MessageCircle size={22} />독자 댓글 <span>{comments.filter(comment => !comment.isHidden).length}</span></h2></div><p>작품을 읽은 마음을 나눠 보세요.</p></div>
     {isAuthenticated && user ? <form className="comment-form" onSubmit={submit}><Textarea value={body} onChange={event => setBody(event.target.value)} placeholder="작품에 대한 감상과 응원을 남겨 주세요. 서로를 존중하는 말로 써 주세요." maxLength={1000} rows={4} disabled={pending} /><div><small>{body.length.toLocaleString("ko-KR")} / 1,000</small><Button type="submit" disabled={!body.trim() || pending}>{createMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}댓글 등록</Button></div></form> : <div className="comments-login"><div><strong>댓글은 로그인한 회원이 작성할 수 있습니다.</strong><span>웹툰 감상은 로그인 없이 계속 무료입니다.</span></div><Button variant="outline" onClick={() => startLogin(`/webtoon/${webtoonSlug}`)}><LogIn size={16} />로그인 후 댓글 쓰기</Button></div>}
-    {isLoading ? <div className="comments-state">댓글을 불러오는 중입니다.</div> : isError ? <div className="comments-state">댓글을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div> : comments.length ? <ol className="comment-list">{comments.map(comment => { const canDelete = user?.id === comment.authorId || isAdmin; return <li key={comment.id} className={comment.isHidden ? "comment-item comment-item--hidden" : "comment-item"}><div className="comment-item__meta"><strong>{comment.authorName}</strong>{comment.isHidden ? <span className="comment-hidden-badge">숨김 처리됨</span> : null}<time dateTime={comment.createdAt}>{formatDate(comment.createdAt)}</time></div><p>{comment.body}</p>{(canDelete || isAdmin) ? <div className="comment-item__actions">{isAdmin ? <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={() => hideMutation.mutate({ commentId: comment.id, hidden: !comment.isHidden, actorId: user!.id })}>{comment.isHidden ? <Eye size={14} /> : <EyeOff size={14} />}{comment.isHidden ? "공개" : "숨김"}</Button> : null}{canDelete ? <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={() => { if (window.confirm("이 댓글을 삭제할까요?")) deleteMutation.mutate(comment.id); }}><Trash2 size={14} />삭제</Button> : null}</div> : null}</li>; })}</ol> : <div className="comments-state"><MessageCircle size={25} /><p>첫 번째 독자 댓글을 남겨 보세요.</p></div>}
+    {isLoading ? <div className="comments-state">댓글을 불러오는 중입니다.</div> : isError ? <div className="comments-state">댓글을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div> : comments.length ? <ol className="comment-list">{comments.map(comment => { const canDelete = user?.id === comment.authorId || isAdmin; const classes = ["comment-item", comment.isHidden ? "comment-item--hidden" : "", comment.isPinned ? "comment-item--pinned" : ""].filter(Boolean).join(" "); return <li key={comment.id} className={classes}><div className="comment-item__meta"><strong>{comment.authorName}</strong>{comment.isPinned ? <span className="comment-pinned-badge"><Pin size={13} />상단 고정</span> : null}{comment.isHidden ? <span className="comment-hidden-badge">숨김 처리됨</span> : null}<time dateTime={comment.createdAt}>{formatDate(comment.createdAt)}</time></div><p>{comment.body}</p>{(canDelete || isAdmin) ? <div className="comment-item__actions">{isAdmin ? <><Button type="button" variant="ghost" size="sm" disabled={pending} onClick={() => pinMutation.mutate({ commentId: comment.id, pinned: !comment.isPinned, actorId: user!.id })}>{comment.isPinned ? <PinOff size={14} /> : <Pin size={14} />}{comment.isPinned ? "고정 해제" : "상단 고정"}</Button><Button type="button" variant="ghost" size="sm" disabled={pending} onClick={() => hideMutation.mutate({ commentId: comment.id, hidden: !comment.isHidden, actorId: user!.id })}>{comment.isHidden ? <Eye size={14} /> : <EyeOff size={14} />}{comment.isHidden ? "공개" : "숨김"}</Button></> : null}{canDelete ? <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={() => { if (window.confirm("이 댓글을 삭제할까요?")) deleteMutation.mutate(comment.id); }}><Trash2 size={14} />삭제</Button> : null}</div> : null}</li>; })}</ol> : <div className="comments-state"><MessageCircle size={25} /><p>첫 번째 독자 댓글을 남겨 보세요.</p></div>}
   </section>;
 }
-
