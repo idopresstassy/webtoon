@@ -37,6 +37,7 @@ const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 280;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 480;
+const operatorEmail = "idopublishingcompan@gmail.com";
 
 export default function DashboardLayout({
   children,
@@ -47,7 +48,8 @@ export default function DashboardLayout({
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
   });
-  const { loading, user } = useAuth();
+  const { loading, user, logout } = useAuth();
+  const isAdmin = user?.role === "admin" || user?.email?.toLowerCase() === operatorEmail;
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
@@ -70,12 +72,24 @@ export default function DashboardLayout({
             </p>
           </div>
           <Button
-            onClick={() => startLogin()}
+            onClick={() => startLogin("/admin")}
             size="lg"
             className="w-full shadow-lg hover:shadow-xl transition-all"
           >
               로그인하기
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#f7f4ed] p-5">
+        <div className="flex flex-col items-center gap-6 p-8 max-w-md w-full text-center border border-[#ddd4c6] bg-[#fbf9f4]">
+          <h1 className="text-2xl font-semibold tracking-tight">운영자 전용 화면입니다</h1>
+          <p className="text-sm text-muted-foreground leading-6">현재 로그인한 계정은 작품·회원·통계 관리 권한이 없습니다. 승인된 운영자 계정으로 다시 로그인해 주세요.</p>
+          <Button onClick={() => void logout()} size="lg" className="w-full">다른 계정으로 로그인</Button>
         </div>
       </div>
     );

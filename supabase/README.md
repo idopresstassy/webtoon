@@ -26,6 +26,8 @@ on conflict (id) do update set role = 'admin';
 
 Supabase Dashboard의 **Authentication → Providers**에서 Email 제공자를 켭니다. 이메일 확인을 사용할지 여부는 독립 웹앱의 로그인 구현 단계에서 결정합니다. GitHub 로그인은 필요할 때만 같은 메뉴에서 추가합니다.
 
+Vercel 배포 뒤에는 **Authentication → URL Configuration**에서 Site URL을 `https://www.koreawebtoon.com`으로 설정하고, Redirect URLs에 `https://www.koreawebtoon.com/login`과 `https://webtoon-sand.vercel.app/login`을 추가합니다. 이메일 확인을 켠 경우 회원은 이 주소의 로그인 화면으로 돌아와 인증을 완료합니다. URL 변경 후에는 운영자 계정으로 로그인해 역할이 유지되는지 확인합니다.
+
 ## 회원 관리 보완
 
 `migrations/20260827_member_management.sql`은 회원 관리 화면에 필요한 이메일과 최근 로그인 시각을 `profiles` 테이블에 추가합니다. 기존 스키마 적용 후 SQL Editor에서 한 번 실행합니다.

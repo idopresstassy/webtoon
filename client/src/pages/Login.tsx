@@ -14,6 +14,8 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
+  const next = new URLSearchParams(window.location.search).get("next");
+  const nextPath = next?.startsWith("/") && !next.startsWith("//") ? next : "/";
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -22,11 +24,11 @@ export default function Login() {
       if (mode === "login") {
         await signIn(email, password);
         toast.success("로그인했습니다.");
-        setLocation("/admin");
+        setLocation(nextPath);
       } else {
         const result = await signUp(email, password);
         toast.success(result.confirmationRequired ? "확인 이메일을 보냈습니다. 이메일 인증 후 로그인해 주세요." : "회원가입이 완료되었습니다.");
-        if (!result.confirmationRequired) setLocation("/");
+        if (!result.confirmationRequired) setLocation(nextPath);
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "인증 처리 중 오류가 발생했습니다.");
@@ -51,4 +53,3 @@ export default function Login() {
     </section>
   </main>;
 }
-
