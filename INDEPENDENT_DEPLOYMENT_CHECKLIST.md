@@ -50,4 +50,17 @@ Vercel의 **Settings → Environment Variables**에 다음 두 값만 등록합�
 
 배포 후에는 비회원 감상, 회원가입·로그인, 운영자 로그인, 작품·회차 업로드, 이미지 순서 변경, 회원·통계 조회를 차례대로 확인합니다.
 
+## 5. 2026-08-29 독립 배포 확인 기록
+
+- Vercel 프로젝트 `webtoon`의 기본 공개 주소 `https://webtoon-sand.vercel.app`에서 홈과 이생규장전 작품 상세가 정상 열리는 것을 확인했습니다.
+- 작품 상세에는 Supabase `webtoon-assets`의 표지와 공개된 4개 회차가 표시되며, 1화 뷰어는 Supabase Storage의 세로 이미지 3개 URL을 사용합니다.
+- `koreawebtoon.com`과 `www.koreawebtoon.com`을 Vercel Domains에 추가했습니다. 도메인 구입처의 기존 Manus 연결을 해제하고 아래 DNS 레코드를 등록했습니다.
+
+| 이름 | 유형 | 값 |
+|---|---|---|
+| `@` | A | `216.198.79.1` |
+| `www` | CNAME | `adf9158d20cd60e4.vercel-dns-017.com` |
+
+공개 DNS 확인 서비스에서는 위 값이 확인되었으나, Vercel 관리 화면의 상태가 `Valid Configuration`으로 갱신되기까지는 전파 시간이 더 걸릴 수 있습니다.
+
 > 외부 계정 연결이 계속 실패하면, 먼저 브라우저에서 Supabase 계정을 만든 뒤 이 작업으로 돌아오면 됩니다. 코드와 콘텐츠 내보내기 준비는 연결 없이도 계속 가능합니다.

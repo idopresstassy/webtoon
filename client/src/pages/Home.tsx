@@ -24,7 +24,7 @@ export default function Home() {
       <PublicHeader />
       <main>
         <section className="hero-section">
-          <div className="hero-art" aria-hidden="true"><img src="/manus-storage/ink-painting-hero_48f08ddb.jpg" alt="" /></div>
+          <div className="hero-art" aria-hidden="true" />
           <div className="hero-content container">
             <div className="eyebrow"><Sparkles size={14} />FREE TO READ · ALWAYS</div>
             <p className="hero-kicker">한 편의 이야기로 완성되는 하루.</p>

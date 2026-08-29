@@ -60,6 +60,8 @@
 - [ ] 독립 Vercel 정적 배포 설정을 유지하면서 Manus 자동 배포의 서버 시작 호환성 오류를 수정한다.
 - [ ] Manus에서 구입한 koreawebtoon.com을 명작무료웹툰 프로젝트의 대표 도메인으로 연결하고 HTTPS 상태를 확인한다.
 - [ ] 독립 Supabase 전환 코드와 문서를 GitHub idopresstassy/webtoon 저장소에 동기화하고 원격 반영을 확인한다.
+- [ ] 최신 영웅 질감 변경을 GitHub·Vercel에 재배포하고, 독립 주소에서 Manus 전용 이미지를 요청하지 않는지 확인한다.
+- [ ] 독립 Vercel 배포 홈에서 CSS 기반 먹빛 질감 영웅 영역을 실제로 렌더링 확인한다.
 - [ ] Supabase 프로젝트 URL·익명 키·서버 키를 보안 환경 변수로 등록하고 독립 웹앱 연결을 시작한다.
 - [x] Supabase 프로젝트 URL·익명 키·서버 키를 보안 환경 변수로 등록하고 실제 API 연결을 검증한다.
 - [x] Supabase 적용용 데이터베이스 스키마·RLS 정책·이미지 버킷 SQL과 실행 안내를 저장소에 준비한다.
