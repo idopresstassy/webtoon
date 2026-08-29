@@ -16,6 +16,8 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ confirmationRequired: boolean }>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -97,13 +99,26 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     return { confirmationRequired: !data.session };
   }, [refresh]);
 
+  const requestPasswordReset = useCallback(async (email: string) => {
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/login`,
+    });
+    if (resetError) throw friendlyAuthError(resetError);
+  }, []);
+
+  const updatePassword = useCallback(async (password: string) => {
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+    if (updateError) throw friendlyAuthError(updateError);
+    await refresh();
+  }, [refresh]);
+
   const logout = useCallback(async () => {
     const { error: signOutError } = await supabase.auth.signOut();
     if (signOutError) throw signOutError;
     setUser(null);
   }, []);
 
-  const value = useMemo(() => ({ user, loading, error, isAuthenticated: Boolean(user), signIn, signUp, logout, refresh }), [user, loading, error, signIn, signUp, logout, refresh]);
+  const value = useMemo(() => ({ user, loading, error, isAuthenticated: Boolean(user), signIn, signUp, requestPasswordReset, updatePassword, logout, refresh }), [user, loading, error, signIn, signUp, requestPasswordReset, updatePassword, logout, refresh]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
