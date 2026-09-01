@@ -17,6 +17,13 @@ function getVisitorId() {
 export default function Viewer({ slug, episodeNumber }: { slug: string; episodeNumber: number }) {
   const input = useMemo(() => ({ slug, episodeNumber }), [slug, episodeNumber]);
   const { data, isLoading, error } = useQuery({ queryKey: ["supabase", "viewer", input], queryFn: () => getPublicViewer(slug, episodeNumber) });
+  const [mode, setMode] = useState<"scroll" | "swipe">("scroll");
+  const [pageIndex, setPageIndex] = useState(0);
+  useEffect(() => {
+    if (!data) return;
+    setMode(data.episode.viewerMode === "swipe" ? "swipe" : "scroll");
+    setPageIndex(0);
+  }, [data?.episode.id, data?.episode.viewerMode]);
   useEffect(() => {
     if (!data) return;
     const dayKey = new Date().toISOString().slice(0, 10);
@@ -27,9 +34,6 @@ export default function Viewer({ slug, episodeNumber }: { slug: string; episodeN
   }, [data]);
   if (isLoading) return <div className="viewer-page viewer-state">회차를 불러오는 중입니다.</div>;
   if (error || !data) return <div className="viewer-page viewer-state">요청하신 회차를 찾을 수 없습니다.</div>;
-  const [mode, setMode] = useState<"scroll" | "swipe">(data.episode.viewerMode === "swipe" ? "swipe" : "scroll");
-  const [pageIndex, setPageIndex] = useState(0);
-  useEffect(() => { setMode(data.episode.viewerMode === "swipe" ? "swipe" : "scroll"); setPageIndex(0); }, [data.episode.id, data.episode.viewerMode]);
   const currentIndex = data.allEpisodes.findIndex(episode => episode.episodeNumber === episodeNumber);
   const previous = data.allEpisodes[currentIndex - 1];
   const next = data.allEpisodes[currentIndex + 1];
