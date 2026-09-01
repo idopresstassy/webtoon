@@ -1,8 +1,8 @@
-import PublicHeader from "@/components/PublicHeader";
 import { getPublicViewer, recordPublicReading } from "@/lib/webtoonRepository";
 import { ChevronLeft, ChevronRight, List, Maximize2 } from "lucide-react";
 import { Link } from "wouter";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent, MouseEvent, PointerEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 function getVisitorId() {
@@ -14,14 +14,112 @@ function getVisitorId() {
   return next;
 }
 
+type SwipeImage = { id: string | number; imageUrl: string | null };
+type SwipePagerProps = { images: SwipeImage[]; title: string; episodeNumber: number };
+
+function SwipePager({ images, title, episodeNumber }: SwipePagerProps) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageWidth, setPageWidth] = useState(0);
+  const [pageHeight, setPageHeight] = useState(0);
+  const pointerStart = useRef<number | null>(null);
+  const pointerDelta = useRef(0);
+  const suppressClick = useRef(false);
+
+  useEffect(() => {
+    setPageIndex(0);
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const recalc = () => {
+      setPageWidth(viewport.clientWidth);
+      setPageHeight(viewport.clientHeight);
+    };
+    recalc();
+    const observer = new ResizeObserver(recalc);
+    observer.observe(viewport);
+    window.addEventListener("orientationchange", recalc);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("orientationchange", recalc);
+    };
+  }, [images.length]);
+
+  const movePage = (delta: number) => {
+    setPageIndex(current => Math.max(0, Math.min(images.length - 1, current + delta)));
+  };
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "ArrowLeft" || event.key === "PageDown") {
+      event.preventDefault();
+      movePage(1);
+    } else if (event.key === "ArrowRight" || event.key === "PageUp") {
+      event.preventDefault();
+      movePage(-1);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setPageIndex(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      setPageIndex(images.length - 1);
+    }
+  };
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    pointerStart.current = event.clientX;
+    pointerDelta.current = 0;
+    event.currentTarget.focus();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (pointerStart.current !== null) pointerDelta.current = event.clientX - pointerStart.current;
+  };
+  const onPointerUp = () => {
+    if (pointerStart.current !== null && Math.abs(pointerDelta.current) > 40) {
+      // Korean comics are RTL: a leftward gesture advances one page.
+      movePage(pointerDelta.current < 0 ? 1 : -1);
+      suppressClick.current = true;
+    }
+    pointerStart.current = null;
+    pointerDelta.current = 0;
+  };
+  const onClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (suppressClick.current) {
+      suppressClick.current = false;
+      return;
+    }
+    const bounds = event.currentTarget.getBoundingClientRect();
+    // Left and right click zones mirror the RTL swipe direction.
+    movePage(event.clientX - bounds.left < bounds.width / 2 ? 1 : -1);
+  };
+
+  return (
+    <div
+      ref={viewportRef}
+      className="viewer-swipe-stage"
+      dir="rtl"
+      tabIndex={0}
+      role="application"
+      aria-label="페이지 스와이프 뷰어"
+      onKeyDown={onKeyDown}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onClick={onClick}
+    >
+      <div className="viewer-swipe-track" style={{ width: `${images.length * 100}%`, transform: `translateX(${pageIndex * pageWidth}px)` }}>
+        {images.map((image, index) => (
+          <div className="viewer-swipe-page" style={{ width: `${pageWidth}px`, height: `${pageHeight}px` }} key={image.id} aria-hidden={index !== pageIndex}>
+            <img src={image.imageUrl ?? ""} alt={`${title} ${episodeNumber}화 ${index + 1}페이지`} loading={Math.abs(index - pageIndex) <= 1 ? "eager" : "lazy"} draggable={false} />
+          </div>
+        ))}
+      </div>
+      <span className="viewer-page-indicator" aria-live="polite">{pageIndex + 1} / {images.length}</span>
+    </div>
+  );
+}
+
 export default function Viewer({ slug, episodeNumber }: { slug: string; episodeNumber: number }) {
   const input = useMemo(() => ({ slug, episodeNumber }), [slug, episodeNumber]);
   const { data, isLoading, error } = useQuery({ queryKey: ["supabase", "viewer", input], queryFn: () => getPublicViewer(slug, episodeNumber) });
-  const [mode, setMode] = useState<"scroll" | "swipe">("scroll");
-  useEffect(() => {
-    if (!data) return;
-    setMode(data.episode.viewerMode === "swipe" ? "swipe" : "scroll");
-  }, [data?.episode.id, data?.episode.viewerMode]);
   useEffect(() => {
     if (!data) return;
     const dayKey = new Date().toISOString().slice(0, 10);
@@ -42,16 +140,8 @@ export default function Viewer({ slug, episodeNumber }: { slug: string; episodeN
   return (
     <div className="viewer-page">
       <div className="viewer-topbar"><Link href={`/webtoon/${slug}`} className="viewer-back"><ChevronLeft size={20} />목록</Link><div><strong>{data.work.title}</strong><span>{data.episode.episodeNumber}화 · {data.episode.title}</span></div><button className="viewer-icon" onClick={toggleFullscreen} aria-label="전체 화면 전환"><Maximize2 size={18} /></button></div>
-      <div className="viewer-toolbar" role="group" aria-label="보기 방식">
-        <button className={mode === "scroll" ? "viewer-mode viewer-mode--active" : "viewer-mode"} onClick={() => setMode("scroll")}>세로 스크롤</button>
-        <button className={mode === "swipe" ? "viewer-mode viewer-mode--active" : "viewer-mode"} onClick={() => setMode("swipe")} disabled={!data.images.length}>페이지 스와이프</button>
-      </div>
-      <main className={mode === "swipe" ? "viewer-canvas viewer-canvas--swipe" : "viewer-canvas"}>
-        {data.images.length ? mode === "scroll" ? data.images.map(image => <img key={image.id} src={image.imageUrl ?? ""} alt={`${data.work.title} ${data.episode.episodeNumber}화`} />) : <div className="viewer-swipe-stage" dir="rtl" aria-label="페이지 스와이프 뷰어">
-          <div className="viewer-swipe-track">
-            {data.images.map((image, index) => <img key={image.id} src={image.imageUrl ?? ""} alt={`${data.work.title} ${data.episode.episodeNumber}화 ${index + 1}페이지`} loading={index > 1 ? "lazy" : "eager"} />)}
-          </div>
-        </div> : <div className="viewer-empty"><List size={27} /><p>아직 업로드된 이미지가 없습니다.</p></div>}
+      <main className="viewer-canvas viewer-canvas--swipe">
+        {data.images.length ? <SwipePager images={data.images} title={data.work.title} episodeNumber={data.episode.episodeNumber} /> : <div className="viewer-empty"><List size={27} /><p>아직 업로드된 이미지가 없습니다.</p></div>}
       </main>
       <nav className="viewer-navigation" aria-label="회차 이동"><Link href={`/webtoon/${slug}`}><List size={18} />회차 목록</Link>{previous ? <Link href={`/webtoon/${slug}/episode/${previous.episodeNumber}`}><ChevronLeft size={18} />이전 화</Link> : <span>첫 화입니다</span>}{next ? <Link href={`/webtoon/${slug}/episode/${next.episodeNumber}`}>다음 화<ChevronRight size={18} /></Link> : <span>마지막 화입니다</span>}</nav>
     </div>
