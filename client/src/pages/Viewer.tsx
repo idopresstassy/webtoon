@@ -18,30 +18,13 @@ type SwipeImage = { id: string | number; imageUrl: string | null };
 type SwipePagerProps = { images: SwipeImage[]; title: string; episodeNumber: number };
 
 function SwipePager({ images, title, episodeNumber }: SwipePagerProps) {
-  const viewportRef = useRef<HTMLDivElement>(null);
   const [pageIndex, setPageIndex] = useState(0);
-  const [pageWidth, setPageWidth] = useState(0);
-  const [pageHeight, setPageHeight] = useState(0);
   const pointerStart = useRef<number | null>(null);
   const pointerDelta = useRef(0);
   const suppressClick = useRef(false);
 
   useEffect(() => {
     setPageIndex(0);
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-    const recalc = () => {
-      setPageWidth(viewport.clientWidth);
-      setPageHeight(viewport.clientHeight);
-    };
-    recalc();
-    const observer = new ResizeObserver(recalc);
-    observer.observe(viewport);
-    window.addEventListener("orientationchange", recalc);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("orientationchange", recalc);
-    };
   }, [images.length]);
 
   const movePage = (delta: number) => {
@@ -73,7 +56,7 @@ function SwipePager({ images, title, episodeNumber }: SwipePagerProps) {
   };
   const onPointerUp = () => {
     if (pointerStart.current !== null && Math.abs(pointerDelta.current) > 40) {
-      // Korean comics are RTL: a leftward gesture advances one page.
+      // Fixed convention: a leftward gesture advances one page.
       movePage(pointerDelta.current < 0 ? 1 : -1);
       suppressClick.current = true;
     }
@@ -86,15 +69,13 @@ function SwipePager({ images, title, episodeNumber }: SwipePagerProps) {
       return;
     }
     const bounds = event.currentTarget.getBoundingClientRect();
-    // Left and right click zones mirror the RTL swipe direction.
+    // Left click advances; right click goes to the previous page.
     movePage(event.clientX - bounds.left < bounds.width / 2 ? 1 : -1);
   };
 
   return (
     <div
-      ref={viewportRef}
       className="viewer-swipe-stage"
-      dir="rtl"
       tabIndex={0}
       role="application"
       aria-label="페이지 스와이프 뷰어"
@@ -105,9 +86,9 @@ function SwipePager({ images, title, episodeNumber }: SwipePagerProps) {
       onPointerCancel={onPointerUp}
       onClick={onClick}
     >
-      <div className="viewer-swipe-track" style={{ width: `${images.length * 100}%`, transform: `translateX(${pageIndex * pageWidth}px)` }}>
+      <div className="viewer-swipe-track" style={{ position: "relative", width: "100%", height: "100%" }}>
         {images.map((image, index) => (
-          <div className="viewer-swipe-page" style={{ width: `${pageWidth}px`, height: `${pageHeight}px` }} key={image.id} aria-hidden={index !== pageIndex}>
+          <div className="viewer-swipe-page" style={{ position: "absolute", inset: 0, transform: `translate3d(${(pageIndex - index) * 100}%, 0, 0)`, transition: "transform .22s ease-out", visibility: Math.abs(index - pageIndex) <= 1 ? "visible" : "hidden" }} key={image.id} aria-hidden={index !== pageIndex}>
             <img src={image.imageUrl ?? ""} alt={`${title} ${episodeNumber}화 ${index + 1}페이지`} loading={Math.abs(index - pageIndex) <= 1 ? "eager" : "lazy"} draggable={false} />
           </div>
         ))}
