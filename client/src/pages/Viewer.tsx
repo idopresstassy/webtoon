@@ -18,11 +18,9 @@ export default function Viewer({ slug, episodeNumber }: { slug: string; episodeN
   const input = useMemo(() => ({ slug, episodeNumber }), [slug, episodeNumber]);
   const { data, isLoading, error } = useQuery({ queryKey: ["supabase", "viewer", input], queryFn: () => getPublicViewer(slug, episodeNumber) });
   const [mode, setMode] = useState<"scroll" | "swipe">("scroll");
-  const [pageIndex, setPageIndex] = useState(0);
   useEffect(() => {
     if (!data) return;
     setMode(data.episode.viewerMode === "swipe" ? "swipe" : "scroll");
-    setPageIndex(0);
   }, [data?.episode.id, data?.episode.viewerMode]);
   useEffect(() => {
     if (!data) return;
@@ -48,12 +46,11 @@ export default function Viewer({ slug, episodeNumber }: { slug: string; episodeN
         <button className={mode === "scroll" ? "viewer-mode viewer-mode--active" : "viewer-mode"} onClick={() => setMode("scroll")}>세로 스크롤</button>
         <button className={mode === "swipe" ? "viewer-mode viewer-mode--active" : "viewer-mode"} onClick={() => setMode("swipe")} disabled={!data.images.length}>페이지 스와이프</button>
       </div>
-      <main className={mode === "swipe" ? "viewer-canvas viewer-canvas--swipe" : "viewer-canvas"} dir={data.episode.readingDirection === "rtl" ? "rtl" : "ltr"}>
-        {data.images.length ? mode === "scroll" ? data.images.map(image => <img key={image.id} src={image.imageUrl ?? ""} alt={`${data.work.title} ${data.episode.episodeNumber}화`} />) : <div className="viewer-swipe-stage">
-          <div className="viewer-swipe-track" style={{ transform: `translateX(${data.episode.readingDirection === "rtl" ? pageIndex * 100 : -pageIndex * 100}%)` }}>
-            {data.images.map((image, index) => <img key={image.id} src={image.imageUrl ?? ""} alt={`${data.work.title} ${data.episode.episodeNumber}화 ${index + 1}페이지`} />)}
+      <main className={mode === "swipe" ? "viewer-canvas viewer-canvas--swipe" : "viewer-canvas"}>
+        {data.images.length ? mode === "scroll" ? data.images.map(image => <img key={image.id} src={image.imageUrl ?? ""} alt={`${data.work.title} ${data.episode.episodeNumber}화`} />) : <div className="viewer-swipe-stage" dir="rtl" aria-label="페이지 스와이프 뷰어">
+          <div className="viewer-swipe-track">
+            {data.images.map((image, index) => <img key={image.id} src={image.imageUrl ?? ""} alt={`${data.work.title} ${data.episode.episodeNumber}화 ${index + 1}페이지`} loading={index > 1 ? "lazy" : "eager"} />)}
           </div>
-          <div className="viewer-swipe-controls"><button onClick={() => setPageIndex(index => Math.max(0, index - 1))} disabled={pageIndex === 0}><ChevronLeft size={18} />이전</button><span>{pageIndex + 1} / {data.images.length}</span><button onClick={() => setPageIndex(index => Math.min(data.images.length - 1, index + 1))} disabled={pageIndex === data.images.length - 1}>다음<ChevronRight size={18} /></button></div>
         </div> : <div className="viewer-empty"><List size={27} /><p>아직 업로드된 이미지가 없습니다.</p></div>}
       </main>
       <nav className="viewer-navigation" aria-label="회차 이동"><Link href={`/webtoon/${slug}`}><List size={18} />회차 목록</Link>{previous ? <Link href={`/webtoon/${slug}/episode/${previous.episodeNumber}`}><ChevronLeft size={18} />이전 화</Link> : <span>첫 화입니다</span>}{next ? <Link href={`/webtoon/${slug}/episode/${next.episodeNumber}`}>다음 화<ChevronRight size={18} /></Link> : <span>마지막 화입니다</span>}</nav>
