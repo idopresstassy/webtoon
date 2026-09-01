@@ -140,3 +140,20 @@ button { cursor: pointer; }
 .comment-item--pinned { background: linear-gradient(120deg, rgba(174, 139, 76, .11), rgba(255, 253, 247, .86)); border-color: rgba(161, 126, 65, .5); }
 .comment-pinned-badge { display: inline-flex; align-items: center; gap: .25rem; color: #806431; background: #f3ead6; border: 1px solid #dcc89d; padding: .18rem .42rem; font-size: .71rem; font-weight: 700; letter-spacing: .02em; }
 @media (max-width: 640px) { .comments-section { margin: 54px -2px 64px; padding: 24px 18px; }.comments-heading { align-items: start; flex-direction: column; gap: 7px; }.comments-heading h2 { font-size: 22px; }.comments-login { align-items: stretch; flex-direction: column; }.comments-login button { width: 100%; }.comment-item--hidden { margin-inline: -8px; padding-inline: 10px; } }
+
+.viewer-toolbar { width: min(800px, 100%); margin: 0 auto; padding: 8px 12px; display: flex; justify-content: center; gap: 7px; background: #191714; border-bottom: 1px solid #2e2a24; position: sticky; top: 58px; z-index: 2; }
+.viewer-mode { border: 1px solid #514a40; border-radius: 999px; padding: 6px 12px; background: transparent; color: #b9b0a3; font-size: 11px; }
+.viewer-mode--active { background: #e5d7bd; color: #2b261f; border-color: #e5d7bd; }
+.viewer-mode:disabled { opacity: .4; cursor: not-allowed; }
+.viewer-canvas--swipe { overflow: hidden; }
+.viewer-swipe-stage { overflow: hidden; position: relative; }
+.viewer-swipe-track { display: flex; width: 100%; transition: transform .25s ease; }
+.viewer-swipe-track img { width: 100%; flex: 0 0 100%; object-fit: contain; background: #fff; }
+.viewer-swipe-controls { min-height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; background: #191714; color: #e1dacf; font-size: 11px; }
+.viewer-swipe-controls button { display: inline-flex; align-items: center; gap: 4px; border: 0; background: transparent; color: inherit; font-size: 11px; }
+.viewer-swipe-controls button:disabled { color: #625c53; cursor: not-allowed; }
+.viewer-settings { display: grid; gap: 7px; padding: 12px; border: 1px solid #d8ccba; background: #f4eee4; color: #6e6252; font-size: 11px; }
+.viewer-settings > label { font-weight: 700; }
+.viewer-settings__options { display: flex; flex-wrap: wrap; gap: 10px; }
+.viewer-settings__options label { display: inline-flex; align-items: center; gap: 4px; font-weight: 400; }
+@media (max-width: 500px) { .viewer-toolbar { top: 58px; } .viewer-mode { padding: 5px 9px; font-size: 10px; } }
