@@ -19,7 +19,7 @@ const blankEpisode: EpisodeForm = { episodeNumber: "", title: "", isPublished: t
 const operatorEmail = "idopublishingcompan@gmail.com";
 
 function validateImages(files: File[]) {
-  if (files.length > 1) return "이미지는 한 번에 1컷씩 등록해 주세요.";
+  if (files.length > 70) return "회차당 이미지는 최대 70컷까지 등록할 수 있습니다.";
   if (files.some(file => file.size > 20 * 1024 * 1024)) return "원본 이미지는 20MB 이하로 선택해 주세요. 등록 시 690px 폭·최대 1280px·2MB 이하로 자동 변환됩니다.";
   return null;
 }
