@@ -88,7 +88,8 @@ function SwipePager({ images, title, episodeNumber }: SwipePagerProps) {
     >
       <div className="viewer-swipe-track" style={{ position: "relative", width: "100%", height: "100%" }}>
         {images.map((image, index) => (
-          <div className="viewer-swipe-page" style={{ position: "absolute", inset: 0, transform: `translate3d(${(pageIndex - index) * 100}%, 0, 0)`, transition: "transform .22s ease-out", visibility: Math.abs(index - pageIndex) <= 1 ? "visible" : "hidden" }} key={image.id} aria-hidden={index !== pageIndex}>
+          <div className="viewer-swipe-page" style={{ position: "absolute", inset: 0, transform: `translate3d(${(index - pageIndex) * 100
+}%, 0, 0)`, transition: "transform .22s ease-out", visibility: Math.abs(index - pageIndex) <= 1 ? "visible" : "hidden" }} key={image.id} aria-hidden={index !== pageIndex}>
             <img src={image.imageUrl ?? ""} alt={`${title} ${episodeNumber}화 ${index + 1}페이지`} loading={Math.abs(index - pageIndex) <= 1 ? "eager" : "lazy"} draggable={false} />
           </div>
         ))}
