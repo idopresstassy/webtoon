@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 
-type EpisodeImageRow = { id: string; episode_id: string; storage_path: string; sort_order: number };
+type EpisodeImageRow = { id: string; episode_id: string; storage_path: string; sort_order: number; page_number?: number | null; page_width?: number | null; page_height?: number | null };
 
 export type AdminMember = {
   id: string;
@@ -11,8 +11,8 @@ export type AdminMember = {
   lastSignedInAt: string | null;
 };
 
-export type AdminEpisodeImage = { id: string; storagePath: string; imageUrl: string; sortOrder: number };
-export type AdminEpisode = { id: string; webtoonId: string; episodeNumber: number; title: string; isPublished: boolean; images: AdminEpisodeImage[] };
+export type AdminEpisodeImage = { id: string; storagePath: string; imageUrl: string; sortOrder: number; pageNumber?: number; width?: number; height?: number | null };
+export type AdminEpisode = { id: string; webtoonId: string; episodeNumber: number; title: string; isPublished: boolean; viewerMode: "scroll" | "swipe" | "both"; readingDirection: "ltr" | "rtl"; images: AdminEpisodeImage[] };
 export type AdminWork = { id: string; slug: string; title: string; genre: string; description: string; thumbnailPath: string | null; thumbnailUrl: string | null; isPublished: boolean; episodeCount: number };
 export type AdminWorkDetail = { work: AdminWork; episodes: AdminEpisode[] };
 
@@ -28,7 +28,7 @@ export type AdminDashboard = {
 };
 
 type WorkRow = { id: string; slug: string; title: string; genre: string; description: string; thumbnail_path: string | null; is_published: boolean };
-type EpisodeRow = { id: string; webtoon_id: string; episode_number: number; title: string; is_published: boolean };
+type EpisodeRow = { id: string; webtoon_id: string; episode_number: number; title: string; is_published: boolean; viewer_mode?: "scroll" | "swipe" | "both" | null; reading_direction?: "ltr" | "rtl" | null };
 type ReadingEvent = { id: string; webtoon_id: string; episode_id: string; visitor_id: string | null; user_id: string | null; created_at: string; episodes: { title: string; episode_number: number; webtoons: { title: string; genre: string } | null } | null };
 
 function publicAssetUrl(path: string | null) {
@@ -47,6 +47,30 @@ function fileExtension(file: File) {
 
 function safeFileToken(file: File) {
   return `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 48)}`;
+}
+
+const PAGE_WIDTH = 690;
+const PAGE_HEIGHT = 1280;
+const MAX_CUT_BYTES = 2 * 1024 * 1024;
+const MAX_CUTS = 70;
+
+async function normalizeCut(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) throw new Error("JPG, PNG, WEBP 이미지 파일만 등록할 수 있습니다.");
+  const bitmap = await createImageBitmap(file);
+  const scale = PAGE_WIDTH / bitmap.width;
+  const sourceHeight = Math.min(bitmap.height, Math.floor(PAGE_HEIGHT / scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = PAGE_WIDTH;
+  canvas.height = Math.min(PAGE_HEIGHT, Math.max(1, Math.round(sourceHeight * scale)));
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("이미지 변환을 지원하지 않는 브라우저입니다.");
+  context.drawImage(bitmap, 0, 0, bitmap.width, sourceHeight, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const blobFor = (quality: number) => new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("이미지 변환에 실패했습니다.")), "image/webp", quality));
+  let blob = await blobFor(0.86);
+  for (const quality of [0.78, 0.68, 0.58, 0.48]) if (blob.size > MAX_CUT_BYTES) blob = await blobFor(quality);
+  if (blob.size > MAX_CUT_BYTES) throw new Error("변환 후에도 이미지가 2MB를 초과합니다. 더 단순한 이미지를 사용해 주세요.");
+  return new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.webp`, { type: "image/webp", lastModified: Date.now() });
 }
 
 async function uploadImage(path: string, file: File) {
@@ -77,19 +101,19 @@ export async function listAdminWebtoons(): Promise<AdminWork[]> {
 export async function getAdminWebtoon(id: string): Promise<AdminWorkDetail> {
   const { data: work, error: workError } = await supabase.from("webtoons").select("id, slug, title, genre, description, thumbnail_path, is_published").eq("id", id).single();
   if (workError) throw workError;
-  const { data: episodeRows, error: episodeError } = await supabase.from("episodes").select("id, webtoon_id, episode_number, title, is_published").eq("webtoon_id", id).order("episode_number");
+  const { data: episodeRows, error: episodeError } = await supabase.from("episodes").select("id, webtoon_id, episode_number, title, is_published, viewer_mode, reading_direction").eq("webtoon_id", id).order("episode_number");
   if (episodeError) throw episodeError;
   const episodes = (episodeRows ?? []) as EpisodeRow[];
   const ids = episodes.map(episode => episode.id);
-  const { data: images, error: imageError } = ids.length ? await supabase.from("episode_images").select("id, episode_id, storage_path, sort_order").in("episode_id", ids).order("sort_order") : { data: [], error: null };
+  const { data: images, error: imageError } = ids.length ? await supabase.from("episode_images").select("id, episode_id, storage_path, sort_order, page_number, page_width, page_height").in("episode_id", ids).order("sort_order") : { data: [], error: null };
   if (imageError) throw imageError;
   const imagesByEpisode = new Map<string, AdminEpisodeImage[]>();
   for (const image of (images ?? []) as EpisodeImageRow[]) {
     const group = imagesByEpisode.get(image.episode_id) ?? [];
-    group.push({ id: image.id, storagePath: image.storage_path, imageUrl: publicAssetUrl(image.storage_path) ?? "", sortOrder: image.sort_order });
+    group.push({ id: image.id, storagePath: image.storage_path, imageUrl: publicAssetUrl(image.storage_path) ?? "", sortOrder: image.sort_order, pageNumber: image.page_number ?? image.sort_order, width: image.page_width ?? 690, height: image.page_height ?? null });
     imagesByEpisode.set(image.episode_id, group);
   }
-  return { work: toWork(work as WorkRow, episodes.length), episodes: episodes.map(episode => ({ id: episode.id, webtoonId: episode.webtoon_id, episodeNumber: episode.episode_number, title: episode.title, isPublished: episode.is_published, images: imagesByEpisode.get(episode.id) ?? [] })) };
+  return { work: toWork(work as WorkRow, episodes.length), episodes: episodes.map(episode => ({ id: episode.id, webtoonId: episode.webtoon_id, episodeNumber: episode.episode_number, title: episode.title, isPublished: episode.is_published, viewerMode: episode.viewer_mode === "swipe" ? "swipe" : episode.viewer_mode === "both" ? "both" : "scroll", readingDirection: episode.reading_direction === "rtl" ? "rtl" : "ltr", images: imagesByEpisode.get(episode.id) ?? [] })) };
 }
 
 export async function createAdminWebtoon(input: { slug: string; title: string; genre: string; description: string; isPublished: boolean; coverFile: File }) {
@@ -117,16 +141,17 @@ export async function deleteAdminWebtoon(work: AdminWorkDetail) {
   await removeStorageFiles(paths);
 }
 
-export async function createAdminEpisode(input: { work: AdminWork; episodeNumber: number; title: string; isPublished: boolean; imageFiles: File[] }) {
-  const { data: episode, error } = await supabase.from("episodes").insert({ webtoon_id: input.work.id, episode_number: input.episodeNumber, title: input.title.trim(), is_published: input.isPublished, published_at: input.isPublished ? new Date().toISOString() : null }).select("id").single();
+export async function createAdminEpisode(input: { work: AdminWork; episodeNumber: number; title: string; isPublished: boolean; imageFiles: File[]; viewerMode?: "scroll" | "swipe" | "both"; readingDirection?: "ltr" | "rtl" }) {
+  if (input.imageFiles.length > MAX_CUTS) throw new Error(`회차당 이미지는 최대 ${MAX_CUTS}컷까지 등록할 수 있습니다.`);
+  const { data: episode, error } = await supabase.from("episodes").insert({ webtoon_id: input.work.id, episode_number: input.episodeNumber, title: input.title.trim(), is_published: input.isPublished, viewer_mode: input.viewerMode ?? "both", reading_direction: input.readingDirection ?? "ltr", published_at: input.isPublished ? new Date().toISOString() : null }).select("id").single();
   if (error) throw error;
   const paths: string[] = [];
   try {
     for (let index = 0; index < input.imageFiles.length; index += 1) {
-      const file = input.imageFiles[index];
+      const file = await normalizeCut(input.imageFiles[index]);
       paths.push(await uploadImage(`episodes/${input.work.slug}/${String(input.episodeNumber).padStart(3, "0")}/${String(index + 1).padStart(3, "0")}-${safeFileToken(file)}.${fileExtension(file)}`, file));
     }
-    const { error: imageError } = await supabase.from("episode_images").insert(paths.map((storage_path, index) => ({ episode_id: episode.id, storage_path, sort_order: index + 1 })));
+    const { error: imageError } = await supabase.from("episode_images").insert(paths.map((storage_path, index) => ({ episode_id: episode.id, storage_path, sort_order: index + 1, page_number: index + 1, page_width: PAGE_WIDTH, page_height: null })));
     if (imageError) throw imageError;
   } catch (caught) {
     await supabase.from("episodes").delete().eq("id", episode.id);
@@ -135,19 +160,20 @@ export async function createAdminEpisode(input: { work: AdminWork; episodeNumber
   }
 }
 
-export async function updateAdminEpisode(input: { episode: AdminEpisode; work: AdminWork; episodeNumber: number; title: string; isPublished: boolean; imageFiles?: File[]; imageOrder?: AdminEpisodeImage[] }) {
-  const { error } = await supabase.from("episodes").update({ episode_number: input.episodeNumber, title: input.title.trim(), is_published: input.isPublished, published_at: input.isPublished ? new Date().toISOString() : null }).eq("id", input.episode.id);
+export async function updateAdminEpisode(input: { episode: AdminEpisode; work: AdminWork; episodeNumber: number; title: string; isPublished: boolean; imageFiles?: File[]; imageOrder?: AdminEpisodeImage[]; viewerMode?: "scroll" | "swipe" | "both"; readingDirection?: "ltr" | "rtl" }) {
+  const { error } = await supabase.from("episodes").update({ episode_number: input.episodeNumber, title: input.title.trim(), is_published: input.isPublished, viewer_mode: input.viewerMode ?? "both", reading_direction: input.readingDirection ?? "ltr", published_at: input.isPublished ? new Date().toISOString() : null }).eq("id", input.episode.id);
   if (error) throw error;
   if (input.imageFiles?.length) {
     const paths: string[] = [];
     try {
+      if (input.imageFiles.length > MAX_CUTS) throw new Error(`회차당 이미지는 최대 ${MAX_CUTS}컷까지 등록할 수 있습니다.`);
       for (let index = 0; index < input.imageFiles.length; index += 1) {
-        const file = input.imageFiles[index];
+        const file = await normalizeCut(input.imageFiles[index]);
         paths.push(await uploadImage(`episodes/${input.work.slug}/${String(input.episodeNumber).padStart(3, "0")}/${String(index + 1).padStart(3, "0")}-${safeFileToken(file)}.${fileExtension(file)}`, file));
       }
       const { error: deleteError } = await supabase.from("episode_images").delete().eq("episode_id", input.episode.id);
       if (deleteError) throw deleteError;
-      const { error: insertError } = await supabase.from("episode_images").insert(paths.map((storage_path, index) => ({ episode_id: input.episode.id, storage_path, sort_order: index + 1 })));
+      const { error: insertError } = await supabase.from("episode_images").insert(paths.map((storage_path, index) => ({ episode_id: input.episode.id, storage_path, sort_order: index + 1, page_number: index + 1, page_width: PAGE_WIDTH, page_height: null })));
       if (insertError) throw insertError;
       await removeStorageFiles(input.episode.images.map(image => image.storagePath));
     } catch (caught) {
@@ -157,7 +183,7 @@ export async function updateAdminEpisode(input: { episode: AdminEpisode; work: A
   } else if (input.imageOrder) {
     const { error: deleteError } = await supabase.from("episode_images").delete().eq("episode_id", input.episode.id);
     if (deleteError) throw deleteError;
-    const { error: insertError } = await supabase.from("episode_images").insert(input.imageOrder.map((image, index) => ({ episode_id: input.episode.id, storage_path: image.storagePath, sort_order: index + 1 })));
+    const { error: insertError } = await supabase.from("episode_images").insert(input.imageOrder.map((image, index) => ({ episode_id: input.episode.id, storage_path: image.storagePath, sort_order: index + 1, page_number: index + 1, page_width: image.width ?? PAGE_WIDTH, page_height: image.height ?? null })));
     if (insertError) throw insertError;
   }
 }
